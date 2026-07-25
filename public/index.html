@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>סיכום תרופות עם PDF</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 800px;
+            width: 90%;
+            margin: 2rem auto;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+
+        .upload-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .file-input-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px dashed #3498db;
+            border-radius: 5px;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input:hover {
+            border-color: #2980b9;
+            background: #f1f5f9;
+        }
+
+        .submit-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .submit-button:hover {
+            background: #2980b9;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        #results {
+            margin-top: 2rem;
+            text-align: left;
+            display: none;
+        }
+
+        .category {
+            background: #f8fafc;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-title {
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .drug-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .drug-item {
+            color: #3498db;
+            padding: 0.25rem 0;
+        }
+
+        .loading {
+            display: none;
+            margin: 1rem 0;
+        }
+
+        .loading::after {
+            content: "Processing...";
+            color: #666;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .no-results {
+            color: #666;
+            font-style: italic;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>סיכום תרופות</h1>
+        <form method="POST" action="/upload" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+            <div class="file-input-container">
+                <input type="file" name="pdf_file" accept="application/pdf" required class="file-input">
+            </div>
+            <button type="submit" class="submit-button">Analyze PDF</button>
+        </form>
+        <p class="info-text">Upload a PDF to detect medications in the document</p>
+        
+        <div class="loading" id="loading"></div>
+        <div class="error-message" id="error"></div>
+        <div id="results"></div>
+        <pre id="rawTextBox" style="white-space: pre-wrap; background: #f4f4f4; border-radius: 5px; padding: 1rem; margin-top: 2rem; max-height: 300px; overflow: auto; display: none;"></pre>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayResults(data.results, data.raw_text);
+                } else {
+                    showError(data.error || 'An error occurred while processing the PDF');
+                }
+            })
+            .catch(err => {
+                showError('Failed to process the PDF. Please try again.');
+            })
+            .finally(() => {
+                loading.style.display = 'none';
+            });
+        });
+
+        function displayResults(results, rawText) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            
+            if (!results || Object.keys(results).length === 0) {
+                resultsDiv.innerHTML = '<p class="no-results">No medications detected in the document.</p>';
+            } else {
+                const CATEGORY_ORDER = [
+                    "NSAIDS, COXI",
+                    "Weak opioids",
+                    "Strong opioids",
+                    "Adjuvants / anti neuropathic pain",
+                    "Muscle relaxants"
+                ];
+                let html = '';
+                for (const category of CATEGORY_ORDER) {
+                    if (results[category]) {
+                        html += `
+                            <div class="category">
+                                <div class="category-title">${category}</div>
+                                <ul class="drug-list">
+                                    ${results[category].map(drug => `<li class="drug-item">${drug}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                }
+                resultsDiv.innerHTML = html;
+            }
+            // Show raw text
+            const rawTextBox = document.getElementById('rawTextBox');
+            if (rawText && rawText.trim().length > 0) {
+                rawTextBox.textContent = rawText;
+                rawTextBox.style.display = 'block';
+            } else {
+                rawTextBox.textContent = '';
+                rawTextBox.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html> 
