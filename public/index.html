@@ -263,7 +263,7 @@
             fileNameEl.textContent = e.target.files.length > 0 ? e.target.files[0].name : 'No file selected';
         });
 
-        // Drag events
+        // Drag event
         dropZone.addEventListener('dragover', function(e) {
             e.preventDefault();
             dropZone.classList.add('drag-over');
