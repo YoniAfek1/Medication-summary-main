@@ -1,64 +1,52 @@
-"""
-Storage abstraction layer for Medication Summary.
-
-- Local (default): reads/writes drugs_config.json
-- Redis (when KV_URL env var is set): uses Vercel KV via Redis protocol
-
-To switch to Redis:
-  1. Provision a Vercel KV database
-  2. Set KV_URL in your Vercel project environment variables
-  3. Redeploy — no code changes needed
-"""
-
 import json
 import os
 from pathlib import Path
 
 CONFIG_PATH = Path("drugs_config.json")
+FALLBACK_PATH = Path("/tmp/drugs_config.json") if os.environ.get("VERCEL") else CONFIG_PATH
 
-# Attempt to load Redis only if KV_URL is set
 KV_URL = os.environ.get("KV_URL")
-redis_client = None
 
-if KV_URL:
+def get_redis_client():
+    if not KV_URL:
+        return None
     try:
-        import redis.asyncio as aioredis
-        redis_client = aioredis.from_url(KV_URL, decode_responses=True)
-    except Exception:
-        redis_client = None
-
-REDIS_KEY = "medication_config"
-
+        import redis
+        return redis.from_url(KV_URL, decode_responses=True, ssl_cert_reqs="none")
+    except Exception as e:
+        print(f"Failed to initialize Redis: {e}")
+        return None
 
 def load_config() -> dict:
-    """Load the drug config from local JSON or Redis."""
-    if redis_client is not None:
-        # In-memory fallback during async gaps: use sync Redis
-        import redis as sync_redis
-        r = sync_redis.from_url(KV_URL, decode_responses=True)
-        raw = r.get(REDIS_KEY)
-        if raw:
-            return json.loads(raw)
-        # Seed from local file if Redis is empty
-        if CONFIG_PATH.exists():
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            r.set(REDIS_KEY, json.dumps(data, ensure_ascii=False))
-            return data
-        return {}
-    # Local file fallback
-    if CONFIG_PATH.exists():
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    r = get_redis_client()
+    if r:
+        try:
+            raw = r.get("medication_config")
+            if raw:
+                return json.loads(raw)
+            if CONFIG_PATH.exists():
+                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                r.set("medication_config", json.dumps(data, ensure_ascii=False))
+                return data
+            return {}
+        except Exception as e:
+            print(f"Redis load error: {e}")
+            
+    target_path = FALLBACK_PATH if FALLBACK_PATH.exists() else CONFIG_PATH
+    if target_path.exists():
+        with open(target_path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
-
 def save_config(config: dict) -> None:
-    """Persist the drug config to local JSON or Redis."""
-    if redis_client is not None:
-        import redis as sync_redis
-        r = sync_redis.from_url(KV_URL, decode_responses=True)
-        r.set(REDIS_KEY, json.dumps(config, ensure_ascii=False))
-    else:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2, ensure_ascii=False)
+    r = get_redis_client()
+    if r:
+        try:
+            r.set("medication_config", json.dumps(config, ensure_ascii=False))
+            return
+        except Exception as e:
+            print(f"Redis save error: {e}")
+            
+    with open(FALLBACK_PATH, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
