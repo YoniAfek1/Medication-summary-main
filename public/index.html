@@ -291,11 +291,15 @@
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
             const error = document.getElementById('error');
+            const rawTextBox = document.getElementById('rawTextBox');
+            const rawTextHeader = document.getElementById('rawTextHeader');
 
-            // הצגת תיבת הטעינה מיד עם הודעת ההזהרה הקבועה
             loading.style.display = 'block';
             results.style.display = 'none';
             error.style.display = 'none';
+            rawTextBox.style.display = 'none';
+            rawTextHeader.style.display = 'none';
+            rawTextBox.textContent = '';
 
             try {
                 const formData = new FormData(formElement);
