@@ -27,9 +27,6 @@ BASE_CATEGORIES = frozenset({
 # ─── Config Helpers ───────────────────────────────────────────────────────────
 
 def build_entries_list(config: dict) -> list:
-    """Build a flat list of {category, id, search_terms, display_name}
-    for the detection loop. Only includes entries with non-empty search_terms.
-    """
     entries = []
     for cat_name, cat_entries in config.items():
         for entry in cat_entries:
@@ -45,36 +42,45 @@ def build_entries_list(config: dict) -> list:
             })
     return entries
 
-
 def build_category_order(config: dict) -> list:
-    """Build the output order from the config, keeping known base categories
-    in their canonical position and appending unknown ones at the end.
-    """
     order = [c for c in BASE_CATEGORIES if c in config]
     for c in config:
         if c not in order:
             order.append(c)
     return order
 
-
-# Build in-memory data at startup
 CATEGORY_ENTRIES = build_entries_list(load_config())
 
 
-# ─── Detection Helpers ────────────────────────────────────────────────────────
+# ─── Detection & Hebrew Helpers ───────────────────────────────────────────────
 
 def sanitize(text: str) -> str:
     return re.sub(r'[^A-Za-z]', ' ', text)
 
-
 def clean_letters_only(text: str) -> str:
     return re.sub(r'[^a-z]', '', text.lower())
+
+def fix_hebrew_visual_text(text: str) -> str:
+    """Fixes visual-order Hebrew text extracted from PDFs where Hebrew words are reversed."""
+    if not text:
+        return text
+    fixed_lines = []
+    for line in text.split('\n'):
+        words = line.split(' ')
+        fixed_words = []
+        for word in words:
+            # If the word contains Hebrew characters, reverse its characters back to logical order
+            if re.search(r'[\u0590-\u05FF]', word):
+                fixed_words.append(word[::-1])
+            else:
+                fixed_words.append(word)
+        fixed_lines.append(' '.join(fixed_words))
+    return '\n'.join(fixed_lines)
 
 
 # ─── OCR Helper ──────────────────────────────────────────────────────────────
 
 def extract_text_with_ocr_api(pdf_stream) -> str:
-    """Fallback function to send PDF to OCR.space API in chunks of 3 pages."""
     api_key = os.environ.get("OCR_API_KEY")
     if not api_key:
         print("OCR API key is missing. Cannot perform OCR fallback.")
@@ -90,7 +96,6 @@ def extract_text_with_ocr_api(pdf_stream) -> str:
 
     full_ocr_text = ""
 
-    # Split the PDF into chunks of 3 pages to respect the free API limits
     for i in range(0, total_pages, 3):
         writer = PdfWriter()
         chunk_pages = min(3, total_pages - i)
@@ -98,16 +103,14 @@ def extract_text_with_ocr_api(pdf_stream) -> str:
         for j in range(chunk_pages):
             writer.add_page(reader.pages[i + j])
             
-        # Write the chunk to a memory buffer
         chunk_stream = BytesIO()
         writer.write(chunk_stream)
         chunk_stream.seek(0)
         chunk_bytes = chunk_stream.read()
         
-        # Prepare API request
         payload = {
             'apikey': api_key,
-            'language': 'eng', # Change to 'heb' if your documents are mainly Hebrew
+            'language': 'heb', # מוגדר לעברית/אנגלית כדי לסייע בפענוח נכון
             'isOverlayRequired': False,
             'scale': True,
             'OCREngine': 1
@@ -119,7 +122,7 @@ def extract_text_with_ocr_api(pdf_stream) -> str:
                 'https://api.ocr.space/parse/image',
                 data=payload,
                 files={'file': ('chunk.pdf', chunk_bytes, 'application/pdf')},
-                timeout=45 # OCR can take some time
+                timeout=50
             )
             result = response.json()
             
@@ -139,14 +142,8 @@ def extract_text_with_ocr_api(pdf_stream) -> str:
 # ─── PDF Extraction ───────────────────────────────────────────────────────────
 
 def extract_text_from_pdf(pdf_stream) -> str:
-    """Dual-tier PDF text extraction with OCR fallback.
-    Tier 1: pdfplumber. 
-    Tier 2: PyPDF2.
-    Tier 3: OCR.space API (chunked).
-    """
-    raw_text_lines = []
-    
     # Tier 1: pdfplumber
+    raw_text_lines = []
     try:
         pdf_stream.seek(0)
         with pdfplumber.open(pdf_stream) as pdf:
@@ -155,7 +152,7 @@ def extract_text_from_pdf(pdf_stream) -> str:
                 raw_text_lines.append(text)
         full_text = "\n".join(raw_text_lines)
         if len(full_text.strip()) >= 20:
-            return full_text
+            return fix_hebrew_visual_text(full_text)
     except Exception:
         pass
 
@@ -169,18 +166,15 @@ def extract_text_from_pdf(pdf_stream) -> str:
             raw_text_lines.append(text)
         full_text = "\n".join(raw_text_lines)
         if len(full_text.strip()) >= 20:
-            return full_text
+            return fix_hebrew_visual_text(full_text)
     except Exception:
         pass
 
     # Tier 3: OCR API Fallback
-    print("Standard extraction failed or returned less than 20 chars. Falling back to OCR API...")
-    try:
-        ocr_text = extract_text_with_ocr_api(pdf_stream)
-        if len(ocr_text.strip()) >= 20:
-            return ocr_text
-    except Exception as e:
-        print(f"OCR fallback failed: {e}")
+    print("Standard extraction failed. Running OCR API fallback...")
+    ocr_text = extract_text_with_ocr_api(pdf_stream)
+    if len(ocr_text.strip()) >= 20:
+        return fix_hebrew_visual_text(ocr_text)
 
     raise ValueError("The file format is not supported, contains no readable text, or OCR scanning failed.")
 
@@ -192,7 +186,6 @@ def find_drugs_in_pdf(pdf_stream):
     config = load_config()
     cat_order = build_category_order(config)
 
-    # prepare versions of text for searching
     sanitized_text = sanitize(full_text).lower()
     cleaned_text = clean_letters_only(full_text)
     word_list = sanitized_text.split()
@@ -205,7 +198,6 @@ def find_drugs_in_pdf(pdf_stream):
         cat = entry["category"]
         display = entry["display_name"]
 
-        # Split the search_terms on dash/en-dash to get individual search words
         terms = [t.strip() for t in re.split(r'[-–]', entry["search_terms"])]
 
         matched = False
@@ -238,7 +230,6 @@ def find_drugs_in_pdf(pdf_stream):
 def index():
     return app.send_static_file("index.html")
 
-
 @app.route('/medications')
 def medications_page():
     return app.send_static_file("medications.html")
@@ -251,10 +242,8 @@ def get_medications():
     config = load_config()
     return jsonify({"success": True, "categories": config})
 
-
 @app.route('/api/categories', methods=['POST'])
 def add_category():
-    """Add a new, empty drug category."""
     data = request.get_json(silent=True)
     if not data:
         return jsonify({"success": False, "error": "Invalid JSON body"}), 400
@@ -275,10 +264,8 @@ def add_category():
 
     return jsonify({"success": True, "category": name}), 201
 
-
 @app.route('/api/categories/<path:name>', methods=['DELETE'])
 def delete_category(name):
-    """Delete a user-created category. Base categories are protected."""
     if name in BASE_CATEGORIES:
         return jsonify({"success": False, "error": "Base categories cannot be deleted"}), 403
 
@@ -293,7 +280,6 @@ def delete_category(name):
     CATEGORY_ENTRIES = build_entries_list(config)
 
     return jsonify({"success": True})
-
 
 @app.route('/api/medications', methods=['POST'])
 def add_medication():
@@ -326,11 +312,9 @@ def add_medication():
 
     return jsonify({"success": True, "entry": new_entry}), 201
 
-
 @app.route('/api/medications/<drug_id>', methods=['DELETE'])
 def delete_medication(drug_id):
     config = load_config()
-
     for category, entries in config.items():
         for entry in entries:
             if entry["id"] == drug_id:
@@ -341,7 +325,6 @@ def delete_medication(drug_id):
 
                 global CATEGORY_ENTRIES
                 CATEGORY_ENTRIES = build_entries_list(config)
-
                 return jsonify({"success": True})
 
     return jsonify({"success": False, "error": "Medication not found"}), 404
