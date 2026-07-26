@@ -3,83 +3,138 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>סיכום תרופות עם PDF</title>
+    <title>Medication Summary - PDF Upload</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
+            background: #f0f2f5;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 2rem 1rem;
         }
 
-        .container {
+        .nav-bar {
+            max-width: 1100px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-bar a {
+            text-decoration: none;
+            color: #2c3e50;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
             background: white;
+            transition: 0.15s;
+        }
+
+        .nav-bar a:hover {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .nav-bar .active {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .card {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border: 3px solid #2c3e50;
+            border-radius: 12px;
             padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 6px 6px 0 rgba(44, 62, 80, 0.15);
             text-align: center;
-            max-width: 800px;
-            width: 90%;
-            margin: 2rem auto;
         }
 
         h1 {
             color: #2c3e50;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.25rem;
             font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #555;
+            margin-bottom: 2rem;
         }
 
         .upload-form {
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
-        .file-input-container {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        .file-input {
-            width: 100%;
-            padding: 1rem;
-            border: 2px dashed #3498db;
-            border-radius: 5px;
+        .file-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.5rem 1rem;
+            border: 3px dashed #2c3e50;
+            border-radius: 8px;
             background: #f8fafc;
+            transition: 0.15s;
             cursor: pointer;
-            transition: all 0.3s ease;
         }
 
-        .file-input:hover {
-            border-color: #2980b9;
-            background: #f1f5f9;
+        .file-input-wrapper.drag-over {
+            background: #d5f5e3;
+            border-color: #27ae60;
+        }
+
+        .file-label {
+            display: inline-block;
+            background: #2c3e50;
+            color: white;
+            font-weight: 700;
+            padding: 0.5rem 1rem;
+            border: 2px solid #2c3e50;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.1s;
+            white-space: nowrap;
+        }
+
+        .file-label:hover {
+            background: #34495e;
+        }
+
+        .file-name {
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            display: none;
         }
 
         .submit-button {
-            background: #3498db;
+            background: #2ecc71;
             color: white;
-            border: none;
+            border: 3px solid #27ae60;
             padding: 1rem 2rem;
-            border-radius: 5px;
-            font-size: 1rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: 0.1s;
         }
 
         .submit-button:hover {
-            background: #2980b9;
+            background: #27ae60;
         }
 
         .info-text {
             color: #666;
             font-size: 0.9rem;
-            margin-top: 1rem;
         }
 
         #results {
@@ -89,42 +144,42 @@
         }
 
         .category {
-            background: #f8fafc;
-            border-radius: 5px;
-            padding: 1rem;
+            background: #fafafa;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
             margin-bottom: 1rem;
+            overflow: hidden;
         }
 
         .category-title {
-            color: #2c3e50;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            font-size: 1.1rem;
+            background: #2c3e50;
+            color: white;
+            padding: 0.6rem 1rem;
+            font-weight: 700;
+            font-size: 1rem;
         }
 
         .drug-list {
             list-style: none;
-            padding: 0;
-            margin: 0;
+            padding: 0.5rem 1rem;
         }
 
         .drug-item {
-            color: #3498db;
-            padding: 0.25rem 0;
+            color: #2c3e50;
+            padding: 0.3rem 0;
+            font-weight: 600;
         }
 
         .loading {
             display: none;
             margin: 1rem 0;
-        }
-
-        .loading::after {
-            content: "Processing...";
-            color: #666;
+            font-weight: 600;
+            color: #555;
         }
 
         .error-message {
             color: #e74c3c;
+            font-weight: 600;
             margin-top: 1rem;
             display: none;
         }
@@ -134,38 +189,108 @@
             font-style: italic;
             margin: 1rem 0;
         }
+
+        .raw-text-header {
+            display: none;
+            text-align: left;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #2c3e50;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .raw-text-box {
+            white-space: pre-wrap;
+            background: #f4f4f4;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow: auto;
+            display: none;
+            direction: auto;
+            text-align: start;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>סיכום תרופות</h1>
+    <div class="nav-bar">
+        <a href="/" class="active">Upload PDF</a>
+        <a href="/medications">Manage Medications</a>
+    </div>
+
+    <div class="card">
+        <h1>Medication Summary</h1>
+        <p class="subtitle">Upload a PDF to detect medications in the document</p>
+
         <form method="POST" action="/upload" enctype="multipart/form-data" class="upload-form" id="uploadForm">
-            <div class="file-input-container">
-                <input type="file" name="pdf_file" accept="application/pdf" required class="file-input">
+            <div class="file-input-wrapper" id="dropZone">
+                <label for="pdfInput" class="file-label">Choose File</label>
+                <span class="file-name" id="fileName">No file selected</span>
+                <input type="file" id="pdfInput" name="pdf_file" accept="application/pdf" required>
             </div>
             <button type="submit" class="submit-button">Analyze PDF</button>
         </form>
-        <p class="info-text">Upload a PDF to detect medications in the document</p>
-        
-        <div class="loading" id="loading"></div>
+
+        <p class="info-text">Supported format: PDF</p>
+
+        <div class="loading" id="loading">Processing...</div>
         <div class="error-message" id="error"></div>
         <div id="results"></div>
-        <pre id="rawTextBox" style="white-space: pre-wrap; background: #f4f4f4; border-radius: 5px; padding: 1rem; margin-top: 2rem; max-height: 300px; overflow: auto; display: none;"></pre>
+        <div class="raw-text-header" id="rawTextHeader">📄 File Contents</div>
+        <div class="raw-text-box" id="rawTextBox"></div>
     </div>
 
     <script>
+        const dropZone = document.getElementById('dropZone');
+        const pdfInput = document.getElementById('pdfInput');
+        const fileNameEl = document.getElementById('fileName');
+
+        // Click on drop zone opens file picker
+        dropZone.addEventListener('click', function() {
+            pdfInput.click();
+        });
+
+        // File selected via picker
+        pdfInput.addEventListener('change', function(e) {
+            fileNameEl.textContent = e.target.files.length > 0 ? e.target.files[0].name : 'No file selected';
+        });
+
+        // Drag events
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                pdfInput.files = files;
+                fileNameEl.textContent = files[0].name;
+            }
+        });
+
         document.getElementById('uploadForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
             const error = document.getElementById('error');
-            
+
             loading.style.display = 'block';
             results.style.display = 'none';
             error.style.display = 'none';
-            
+
             fetch('/upload', {
                 method: 'POST',
                 body: formData
@@ -178,7 +303,7 @@
                     showError(data.error || 'An error occurred while processing the PDF');
                 }
             })
-            .catch(err => {
+            .catch(() => {
                 showError('Failed to process the PDF. Please try again.');
             })
             .finally(() => {
@@ -189,40 +314,35 @@
         function displayResults(results, rawText) {
             const resultsDiv = document.getElementById('results');
             resultsDiv.style.display = 'block';
-            
+
             if (!results || Object.keys(results).length === 0) {
                 resultsDiv.innerHTML = '<p class="no-results">No medications detected in the document.</p>';
             } else {
-                const CATEGORY_ORDER = [
-                    "NSAIDS, COXI",
-                    "Weak opioids",
-                    "Strong opioids",
-                    "Adjuvants / anti neuropathic pain",
-                    "Muscle relaxants"
-                ];
+                // Dynamically render all categories returned by the backend
                 let html = '';
-                for (const category of CATEGORY_ORDER) {
-                    if (results[category]) {
-                        html += `
-                            <div class="category">
-                                <div class="category-title">${category}</div>
-                                <ul class="drug-list">
-                                    ${results[category].map(drug => `<li class="drug-item">${drug}</li>`).join('')}
-                                </ul>
-                            </div>
-                        `;
-                    }
+                for (const category of Object.keys(results)) {
+                    html += `
+                        <div class="category">
+                            <div class="category-title">${category}</div>
+                            <ul class="drug-list">
+                                ${results[category].map(drug => `<li class="drug-item">${drug}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
                 }
                 resultsDiv.innerHTML = html;
             }
-            // Show raw text
+
             const rawTextBox = document.getElementById('rawTextBox');
+            const rawTextHeader = document.getElementById('rawTextHeader');
             if (rawText && rawText.trim().length > 0) {
                 rawTextBox.textContent = rawText;
                 rawTextBox.style.display = 'block';
+                rawTextHeader.style.display = 'block';
             } else {
                 rawTextBox.textContent = '';
                 rawTextBox.style.display = 'none';
+                rawTextHeader.style.display = 'none';
             }
         }
 
@@ -233,4 +353,4 @@
         }
     </script>
 </body>
-</html> 
+</html>

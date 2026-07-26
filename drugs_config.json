@@ -1,0 +1,264 @@
+{
+  "NSAIDS, COXI": [
+    {
+      "id": "ns-1",
+      "search_terms": "ARCOXIA",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-2",
+      "search_terms": "ETORICOXIB",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-3",
+      "search_terms": "CELCOX",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-4",
+      "search_terms": "CELECOXIB",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-5",
+      "search_terms": "IBUPROFEN",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-6",
+      "search_terms": "NUROFEN",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-7",
+      "search_terms": "COMBODEX",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-8",
+      "search_terms": "Advil",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-9",
+      "search_terms": "Etopan",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-10",
+      "search_terms": "Etodalac",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-11",
+      "search_terms": "Voltaren",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-12",
+      "search_terms": "Abitren",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-13",
+      "search_terms": "Diclofenac",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-14",
+      "search_terms": "brexin",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-15",
+      "search_terms": "indomethacin",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-16",
+      "search_terms": "naxin",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-17",
+      "search_terms": "naproxen",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-18",
+      "search_terms": "piroxicam",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    },
+    {
+      "id": "ns-19",
+      "search_terms": "point",
+      "display_name": "NSAIDS, COXI",
+      "is_base": true
+    }
+  ],
+  "Weak opioids": [
+    {
+      "id": "wo-1",
+      "search_terms": "ROKACET - ROKACET PLUS",
+      "display_name": "ROKACET - ROKACET PLUS",
+      "is_base": true
+    },
+    {
+      "id": "wo-2",
+      "search_terms": "ZALDIAR",
+      "display_name": "ZALDIAR",
+      "is_base": true
+    },
+    {
+      "id": "wo-3",
+      "search_terms": "TRAMADEX - TRAMADOL - Tramal",
+      "display_name": "TRAMADEX - TRAMADOL - Tramal",
+      "is_base": true
+    },
+    {
+      "id": "wo-4",
+      "search_terms": "BUTRANS - BUPERNORPHINE",
+      "display_name": "BUTRANS - BUPERNORPHINE",
+      "is_base": true
+    }
+  ],
+  "Strong opioids": [
+    {
+      "id": "so-1",
+      "search_terms": "PERCOCET - OXYCODONE",
+      "display_name": "PERCOCET - OXYCODONE",
+      "is_base": true
+    },
+    {
+      "id": "so-2",
+      "search_terms": "TARGIN - OXYCODONE",
+      "display_name": "TARGIN - OXYCODONE",
+      "is_base": true
+    },
+    {
+      "id": "so-3",
+      "search_terms": "OXYCONTIN – OXYCODONE",
+      "display_name": "OXYCONTIN – OXYCODONE",
+      "is_base": true
+    },
+    {
+      "id": "so-4",
+      "search_terms": "OXYCOD SYRUP",
+      "display_name": "OXYCOD SYRUP",
+      "is_base": true
+    },
+    {
+      "id": "so-5",
+      "search_terms": "OXYCOD SYR",
+      "display_name": "OXYCOD SYR",
+      "is_base": true
+    },
+    {
+      "id": "so-6",
+      "search_terms": "FENTANYL - fenta- fentadol",
+      "display_name": "FENTANYL - fenta- fentadol",
+      "is_base": true
+    },
+    {
+      "id": "so-7",
+      "search_terms": "MORPHINE - MCR - MIR",
+      "display_name": "MORPHINE - MCR - MIR",
+      "is_base": true
+    }
+  ],
+  "Adjuvants / anti neuropathic pain": [
+    {
+      "id": "an-1",
+      "search_terms": "LYRICA - PREGABALIN",
+      "display_name": "LYRICA - PREGABALIN",
+      "is_base": true
+    },
+    {
+      "id": "an-2",
+      "search_terms": "GABAPENTIN - neurontin",
+      "display_name": "GABAPENTIN - neurontin",
+      "is_base": true
+    },
+    {
+      "id": "an-3",
+      "search_terms": "CYMBALTA - DULOXETINE - dulox",
+      "display_name": "CYMBALTA - DULOXETINE - dulox",
+      "is_base": true
+    },
+    {
+      "id": "an-4",
+      "search_terms": "VENLAFAXINE - VIEPAX - venla",
+      "display_name": "VENLAFAXINE - VIEPAX - venla",
+      "is_base": true
+    },
+    {
+      "id": "an-5",
+      "search_terms": "ELATROL - AMITRIPTYLINE - elatrolet",
+      "display_name": "ELATROL - AMITRIPTYLINE - elatrolet",
+      "is_base": true
+    },
+    {
+      "id": "an-6",
+      "search_terms": "NORTYLIN - NORTRIPTYLINE",
+      "display_name": "NORTYLIN - NORTRIPTYLINE",
+      "is_base": true
+    },
+    {
+      "id": "an-7",
+      "search_terms": "IXEL - MILNACIPRAN",
+      "display_name": "IXEL - MILNACIPRAN",
+      "is_base": true
+    },
+    {
+      "id": "an-8",
+      "search_terms": "TEGRETOL - CARBAMAZEPINE - teril -",
+      "display_name": "TEGRETOL - CARBAMAZEPINE - teril -",
+      "is_base": true
+    },
+    {
+      "id": "an-9",
+      "search_terms": "TRILEPTIN – OXCARBAZEPINE - trileptal - trexapin - timonil- carbi",
+      "display_name": "TRILEPTIN – OXCARBAZEPINE - trileptal - trexapin - timonil- carbi",
+      "is_base": true
+    }
+  ],
+  "Muscle relaxants": [
+    {
+      "id": "mr-1",
+      "search_terms": "MUSCOL",
+      "display_name": "MUSCOL",
+      "is_base": true
+    },
+    {
+      "id": "mr-2",
+      "search_terms": "BACLOSAL – BACLOFEN",
+      "display_name": "BACLOSAL – BACLOFEN",
+      "is_base": true
+    },
+    {
+      "id": "mr-3",
+      "search_terms": "DANTRIUM – DANTROLENE",
+      "display_name": "DANTRIUM – DANTROLENE",
+      "is_base": true
+    }
+  ]
+}

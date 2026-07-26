@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medication Summary - Manage Medications</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .nav-bar {
+            max-width: 1100px;
+            margin: 0 auto 1.5rem auto;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-bar a {
+            text-decoration: none;
+            color: #2c3e50;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            background: white;
+            transition: 0.15s;
+        }
+
+        .nav-bar a:hover {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .nav-bar .active {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .card {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border: 3px solid #2c3e50;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 6px 6px 0 rgba(44, 62, 80, 0.15);
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #555;
+            margin-bottom: 2rem;
+        }
+
+        .category-section {
+            text-align: left;
+            margin-bottom: 2rem;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .category-header {
+            background: #2c3e50;
+            color: white;
+            padding: 0.6rem 1rem;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #ecf0f1;
+            text-align: left;
+            padding: 0.6rem 1rem;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #2c3e50;
+            border-bottom: 3px solid #2c3e50;
+        }
+
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #ddd;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .base-badge {
+            display: inline-block;
+            background: #d5f5e3;
+            color: #1a7a3a;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            border: 2px solid #1a7a3a;
+        }
+
+        .user-badge {
+            display: inline-block;
+            background: #fef9e7;
+            color: #b7950b;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            border: 2px solid #b7950b;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: 2px solid #c0392b;
+            border-radius: 6px;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        .delete-btn:disabled {
+            background: #bbb;
+            border-color: #999;
+            cursor: not-allowed;
+        }
+
+        .add-form {
+            background: #fafafa;
+            padding: 1rem 1.25rem;
+            border-top: 3px solid #2c3e50;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .add-form input {
+            flex: 1 1 180px;
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .add-form input:focus {
+            border-color: #2c3e50;
+            outline: none;
+        }
+
+        .add-btn {
+            background: #2ecc71;
+            color: white;
+            border: 2px solid #27ae60;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.1s;
+            white-space: nowrap;
+        }
+
+        .add-btn:hover {
+            background: #27ae60;
+        }
+
+        .add-cat-section {
+            text-align: left;
+            margin-top: 2rem;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .add-cat-body {
+            background: #fafafa;
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .add-cat-body input {
+            flex: 1 1 250px;
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .add-cat-body input:focus {
+            border-color: #2c3e50;
+            outline: none;
+        }
+
+        .add-cat-btn {
+            background: #2c3e50;
+            color: white;
+            border: 2px solid #2c3e50;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.1s;
+            white-space: nowrap;
+        }
+
+        .add-cat-btn:hover {
+            background: #34495e;
+        }
+
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.75rem 1.25rem;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            background: white;
+            font-weight: 600;
+            box-shadow: 4px 4px 0 rgba(44, 62, 80, 0.2);
+            display: none;
+            z-index: 999;
+        }
+
+        .toast.error { border-color: #e74c3c; color: #e74c3c; }
+        .toast.success { border-color: #2ecc71; color: #27ae60; }
+
+        .empty-row td {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .add-form, .add-cat-body { flex-direction: column; }
+            .add-form input, .add-cat-body input { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="/">Upload PDF</a>
+        <a href="/medications" class="active">Manage Medications</a>
+    </div>
+
+    <div class="card">
+        <h1>Manage Medications</h1>
+        <p class="subtitle">View, add, and remove medications by category. Base medications are protected.</p>
+
+        <div id="container" style="text-align:left;"></div>
+
+        <div class="add-cat-section">
+            <div class="category-header">Add New Category</div>
+            <div class="add-cat-body">
+                <input type="text" id="newCategoryName" placeholder="Category name, e.g. Biologics" />
+                <button id="addCategoryBtn" class="add-cat-btn">+ Add Category</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let categories = {};
+
+        async function loadMedications() {
+            const res = await fetch('/api/medications');
+            const data = await res.json();
+            if (data.success) {
+                categories = data.categories;
+                renderAll();
+            } else {
+                showToast('Failed to load medications', 'error');
+            }
+        }
+
+        function renderAll() {
+            const container = document.getElementById('container');
+            container.innerHTML = '';
+
+            // Build display order: known categories first, then dynamic ones
+            const known = [
+                "NSAIDS, COXI",
+                "Weak opioids",
+                "Strong opioids",
+                "Adjuvants / anti neuropathic pain",
+                "Muscle relaxants"
+            ];
+            const ordered = known.filter(c => c in categories);
+            for (const cat of Object.keys(categories)) {
+                if (!ordered.includes(cat)) ordered.push(cat);
+            }
+
+            for (const cat of ordered) {
+                const entries = categories[cat];
+                const section = document.createElement('div');
+                section.className = 'category-section';
+
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                header.style.display = 'flex';
+                header.style.justifyContent = 'space-between';
+                header.style.alignItems = 'center';
+
+                const headerText = document.createElement('span');
+                headerText.textContent = cat;
+                header.appendChild(headerText);
+
+                // Only show delete button for non-base categories (use known from outer scope)
+                if (!known.includes(cat)) {
+                    const delCatBtn = document.createElement('button');
+                    delCatBtn.textContent = '✕ Delete Category';
+                    delCatBtn.style.background = '#e74c3c';
+                    delCatBtn.style.color = 'white';
+                    delCatBtn.style.border = '2px solid #c0392b';
+                    delCatBtn.style.borderRadius = '6px';
+                    delCatBtn.style.padding = '0.25rem 0.6rem';
+                    delCatBtn.style.fontSize = '0.75rem';
+                    delCatBtn.style.fontWeight = '700';
+                    delCatBtn.style.cursor = 'pointer';
+                    delCatBtn.dataset.category = cat;
+                    delCatBtn.addEventListener('click', onDeleteCategory);
+                    header.appendChild(delCatBtn);
+                }
+
+                section.appendChild(header);
+
+                const table = document.createElement('table');
+                const thead = document.createElement('thead');
+                thead.innerHTML = `<tr>
+                    <th style="width:40%;">Search Term(s)</th>
+                    <th style="width:35%;">Display Name</th>
+                    <th style="width:10%;">Type</th>
+                    <th style="width:15%;">Actions</th>
+                </tr>`;
+                table.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+
+                if (entries.length === 0) {
+                    const row = document.createElement('tr');
+                    row.className = 'empty-row';
+                    row.innerHTML = '<td colspan="4">No medications in this category.</td>';
+                    tbody.appendChild(row);
+                } else {
+                    for (const entry of entries) {
+                        const row = document.createElement('tr');
+                        const isBase = entry.is_base;
+
+                        row.innerHTML = `
+                            <td><code>${escapeHtml(entry.search_terms)}</code></td>
+                            <td><strong>${escapeHtml(entry.display_name)}</strong></td>
+                            <td>${isBase ? '<span class="base-badge">Base</span>' : '<span class="user-badge">User</span>'}</td>
+                            <td>
+                                <button class="delete-btn" data-id="${escapeHtml(entry.id)}" ${isBase ? 'disabled' : ''}>
+                                    ${isBase ? 'Protected' : 'Delete'}
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    }
+                }
+
+                table.appendChild(tbody);
+                section.appendChild(table);
+
+                const form = document.createElement('div');
+                form.className = 'add-form';
+                form.innerHTML = `
+                    <input type="text" class="add-search" placeholder="Search term(s), e.g. ASPIRIN - ASA" />
+                    <input type="text" class="add-display" placeholder="Display name, e.g. ASPIRIN - ASA" />
+                    <button class="add-btn" data-category="${escapeHtml(cat)}">+ Add</button>
+                `;
+                section.appendChild(form);
+                container.appendChild(section);
+            }
+
+            document.querySelectorAll('.delete-btn:not([disabled])').forEach(btn => {
+                btn.addEventListener('click', onDelete);
+            });
+            document.querySelectorAll('.add-btn').forEach(btn => {
+                btn.addEventListener('click', onAdd);
+            });
+        }
+
+        async function onDelete(e) {
+            const id = e.target.dataset.id;
+            if (!confirm('Delete this medication?')) return;
+
+            const res = await fetch(`/api/medications/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                showToast('Medication deleted', 'success');
+                await loadMedications();
+            } else {
+                showToast(data.error || 'Delete failed', 'error');
+            }
+        }
+
+        async function onAdd(e) {
+            const category = e.target.dataset.category;
+            const form = e.target.closest('.add-form');
+            const searchInput = form.querySelector('.add-search');
+            const displayInput = form.querySelector('.add-display');
+            const searchTerms = searchInput.value.trim();
+            const displayName = displayInput.value.trim();
+
+            if (!searchTerms || !displayName) {
+                showToast('Both fields are required', 'error');
+                return;
+            }
+
+            const res = await fetch('/api/medications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category, search_terms: searchTerms, display_name: displayName })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('Medication added', 'success');
+                searchInput.value = '';
+                displayInput.value = '';
+                await loadMedications();
+            } else {
+                showToast(data.error || 'Add failed', 'error');
+            }
+        }
+
+        async function onDeleteCategory(e) {
+            const name = e.target.dataset.category;
+            if (!confirm(`Delete category "${name}" and all its medications?`)) return;
+
+            const res = await fetch(`/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`Category "${name}" deleted`, 'success');
+                await loadMedications();
+            } else {
+                showToast(data.error || 'Delete failed', 'error');
+            }
+        }
+
+        async function onAddCategory() {
+            const input = document.getElementById('newCategoryName');
+            const name = input.value.trim();
+            if (!name) {
+                showToast('Category name is required', 'error');
+                return;
+            }
+
+            const res = await fetch('/api/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`Category "${name}" created`, 'success');
+                input.value = '';
+                await loadMedications();
+            } else {
+                showToast(data.error || 'Add failed', 'error');
+            }
+        }
+
+        document.getElementById('addCategoryBtn').addEventListener('click', onAddCategory);
+        document.getElementById('newCategoryName').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') onAddCategory();
+        });
+
+        function showToast(msg, type) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = 'toast ' + type;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 3000);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        loadMedications();
+    </script>
+</body>
+</html>
