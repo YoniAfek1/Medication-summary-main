@@ -283,75 +283,60 @@
             }
         });
 
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const formData = new FormData(this);
+            const formElement = this;
             const loading = document.getElementById('loading');
             const results = document.getElementById('results');
             const error = document.getElementById('error');
 
-            // איפוס סגנון תיבת הטעינה למצב הרגיל (כחול)
+            // איפוס עיצוב למצב רגיל של סריקה
             loading.style.background = '#ebf5fb';
             loading.style.borderColor = '#3498db';
             loading.style.color = '#2980b9';
-            
             loading.textContent = 'Processing...';
             loading.style.display = 'block';
             results.style.display = 'none';
             error.style.display = 'none';
 
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loading.style.display = 'none';
-                    displayResults(data.results, data.raw_text);
-                } 
-                else if (data.needs_ocr) {
-                    // שינוי הטקסט והפיכת התיבה לצהובה כדי להבליט את המעבר ל-OCR
+            try {
+                // שלב 1: שליחה לבדיקה המהירה
+                let formData = new FormData(formElement);
+                let response = await fetch('/upload', { method: 'POST', body: formData });
+                let data = await response.json();
+
+                // שלב 2: אם השרת דיווח שהקובץ ריק וצריך OCR
+                if (data.needs_ocr) {
+                    // א. משנים את ההודעה והצבע לצהוב
                     loading.innerHTML = '<strong>Notice:</strong> ' + data.message + '<br><small>Please wait, do not close the window.</small>';
                     loading.style.background = '#fef9e7';
                     loading.style.borderColor = '#f1c40f';
                     loading.style.color = '#b7950b';
-                    
-                    // הוספת הדגל לשרת שמורה לו לבצע OCR
+
+                    // ב. מכריחים את הדפדפן להמתין 500 מילי-שניות ולצייר את ההודעה
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    // ג. שולחים את הבקשה הארוכה לשרת
                     formData.append('force_ocr', 'true');
-                    
-                    // השהיה של 150 מילי-שניות כדי להכריח את הדפדפן לצייר את ההודעה לפני הבקשה הכבדה
-                    setTimeout(() => {
-                        fetch('/upload', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(res => res.json())
-                        .then(ocrData => {
-                            loading.style.display = 'none';
-                            if (ocrData.success) {
-                                displayResults(ocrData.results, ocrData.raw_text);
-                            } else {
-                                showError(ocrData.error || 'OCR processing failed.');
-                            }
-                        })
-                        .catch(err => {
-                            loading.style.display = 'none';
-                            showError('Network error during OCR. Please try again.');
-                        });
-                    }, 150);
-                } 
-                else {
+                    response = await fetch('/upload', { method: 'POST', body: formData });
+                    data = await response.json();
+                }
+
+                // סיום הטיפול
+                if (data.success) {
+                    loading.style.display = 'none';
+                    displayResults(data.results, data.raw_text);
+                } else {
                     loading.style.display = 'none';
                     showError(data.error || 'An error occurred while processing the PDF');
                 }
-            })
-            .catch(err => {
+
+            } catch (err) {
                 loading.style.display = 'none';
-                showError('Failed to process the PDF. Please try again.');
+                showError('Network error or timeout. Failed to process the PDF.');
                 console.error(err);
-            });
+            }
         });
 
         function displayResults(results, rawText) {
