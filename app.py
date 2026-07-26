@@ -1,9 +1,11 @@
 import re
 import uuid
+import os
+import requests
 from io import BytesIO
 import pdfplumber
 from flask import Flask, request, jsonify
-from PyPDF2 import PdfReader
+from PyPDF2 import PdfReader, PdfWriter
 from storage import load_config, save_config
 
 app = Flask(
@@ -69,14 +71,82 @@ def clean_letters_only(text: str) -> str:
     return re.sub(r'[^a-z]', '', text.lower())
 
 
+# ─── OCR Helper ──────────────────────────────────────────────────────────────
+
+def extract_text_with_ocr_api(pdf_stream) -> str:
+    """Fallback function to send PDF to OCR.space API in chunks of 3 pages."""
+    api_key = os.environ.get("OCR_API_KEY")
+    if not api_key:
+        print("OCR API key is missing. Cannot perform OCR fallback.")
+        return ""
+
+    pdf_stream.seek(0)
+    try:
+        reader = PdfReader(pdf_stream)
+        total_pages = len(reader.pages)
+    except Exception as e:
+        print(f"Failed to read PDF for OCR chunking: {e}")
+        return ""
+
+    full_ocr_text = ""
+
+    # Split the PDF into chunks of 3 pages to respect the free API limits
+    for i in range(0, total_pages, 3):
+        writer = PdfWriter()
+        chunk_pages = min(3, total_pages - i)
+        
+        for j in range(chunk_pages):
+            writer.add_page(reader.pages[i + j])
+            
+        # Write the chunk to a memory buffer
+        chunk_stream = BytesIO()
+        writer.write(chunk_stream)
+        chunk_stream.seek(0)
+        chunk_bytes = chunk_stream.read()
+        
+        # Prepare API request
+        payload = {
+            'apikey': api_key,
+            'language': 'eng', # Change to 'heb' if your documents are mainly Hebrew
+            'isOverlayRequired': False,
+            'scale': True,
+            'OCREngine': 1
+        }
+        
+        try:
+            print(f"Sending OCR request for pages {i+1} to {i+chunk_pages}...")
+            response = requests.post(
+                'https://api.ocr.space/parse/image',
+                data=payload,
+                files={'file': ('chunk.pdf', chunk_bytes, 'application/pdf')},
+                timeout=45 # OCR can take some time
+            )
+            result = response.json()
+            
+            if result.get('IsErroredOnProcessing'):
+                print(f"OCR Error on chunk {i//3 + 1}: {result.get('ErrorMessage')}")
+                continue
+                
+            for item in result.get('ParsedResults', []):
+                full_ocr_text += item.get('ParsedText', '') + "\n"
+                
+        except Exception as e:
+            print(f"OCR request failed on chunk {i//3 + 1}: {e}")
+            
+    return full_ocr_text
+
+
 # ─── PDF Extraction ───────────────────────────────────────────────────────────
 
 def extract_text_from_pdf(pdf_stream) -> str:
-    """Dual-tier PDF text extraction.
-    Tier 1: pdfplumber. Tier 2 (fallback): PyPDF2.
-    Returns extracted text, or raises ValueError if both fail.
+    """Dual-tier PDF text extraction with OCR fallback.
+    Tier 1: pdfplumber. 
+    Tier 2: PyPDF2.
+    Tier 3: OCR.space API (chunked).
     """
     raw_text_lines = []
+    
+    # Tier 1: pdfplumber
     try:
         pdf_stream.seek(0)
         with pdfplumber.open(pdf_stream) as pdf:
@@ -87,8 +157,9 @@ def extract_text_from_pdf(pdf_stream) -> str:
         if len(full_text.strip()) >= 20:
             return full_text
     except Exception:
-        raw_text_lines = []
+        pass
 
+    # Tier 2: PyPDF2
     raw_text_lines = []
     try:
         pdf_stream.seek(0)
@@ -102,7 +173,16 @@ def extract_text_from_pdf(pdf_stream) -> str:
     except Exception:
         pass
 
-    raise ValueError("The file format is not supported or contains no readable text.")
+    # Tier 3: OCR API Fallback
+    print("Standard extraction failed or returned less than 20 chars. Falling back to OCR API...")
+    try:
+        ocr_text = extract_text_with_ocr_api(pdf_stream)
+        if len(ocr_text.strip()) >= 20:
+            return ocr_text
+    except Exception as e:
+        print(f"OCR fallback failed: {e}")
+
+    raise ValueError("The file format is not supported, contains no readable text, or OCR scanning failed.")
 
 
 # ─── Drug Detection ───────────────────────────────────────────────────────────
