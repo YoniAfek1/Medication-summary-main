@@ -291,6 +291,11 @@
             const results = document.getElementById('results');
             const error = document.getElementById('error');
 
+            // איפוס סגנון תיבת הטעינה למצב הרגיל (כחול)
+            loading.style.background = '#ebf5fb';
+            loading.style.borderColor = '#3498db';
+            loading.style.color = '#2980b9';
+            
             loading.textContent = 'Processing...';
             loading.style.display = 'block';
             results.style.display = 'none';
@@ -307,26 +312,35 @@
                     displayResults(data.results, data.raw_text);
                 } 
                 else if (data.needs_ocr) {
-                    // Update UI with the custom OCR message
-                    loading.textContent = data.message;
+                    // שינוי הטקסט והפיכת התיבה לצהובה כדי להבליט את המעבר ל-OCR
+                    loading.innerHTML = '<strong>Notice:</strong> ' + data.message + '<br><small>Please wait, do not close the window.</small>';
+                    loading.style.background = '#fef9e7';
+                    loading.style.borderColor = '#f1c40f';
+                    loading.style.color = '#b7950b';
                     
-                    // Add flag to force OCR on the next request
+                    // הוספת הדגל לשרת שמורה לו לבצע OCR
                     formData.append('force_ocr', 'true');
                     
-                    // Send the second request
-                    return fetch('/upload', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(res => res.json())
-                    .then(ocrData => {
-                        loading.style.display = 'none';
-                        if (ocrData.success) {
-                            displayResults(ocrData.results, ocrData.raw_text);
-                        } else {
-                            showError(ocrData.error || 'OCR processing failed.');
-                        }
-                    });
+                    // השהיה של 150 מילי-שניות כדי להכריח את הדפדפן לצייר את ההודעה לפני הבקשה הכבדה
+                    setTimeout(() => {
+                        fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                        .then(ocrData => {
+                            loading.style.display = 'none';
+                            if (ocrData.success) {
+                                displayResults(ocrData.results, ocrData.raw_text);
+                            } else {
+                                showError(ocrData.error || 'OCR processing failed.');
+                            }
+                        })
+                        .catch(err => {
+                            loading.style.display = 'none';
+                            showError('Network error during OCR. Please try again.');
+                        });
+                    }, 150);
                 } 
                 else {
                     loading.style.display = 'none';
