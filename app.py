@@ -110,7 +110,7 @@ def extract_text_with_ocr_api(pdf_stream) -> str:
         
         payload = {
             'apikey': api_key,
-            'language': 'heb', # מוגדר לעברית/אנגלית כדי לסייע בפענוח נכון
+            'language': 'eng',
             'isOverlayRequired': False,
             'scale': True,
             'OCREngine': 1
