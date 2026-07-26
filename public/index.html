@@ -174,7 +174,11 @@
             display: none;
             margin: 1rem 0;
             font-weight: 600;
-            color: #555;
+            color: #2980b9;
+            padding: 1rem;
+            background: #ebf5fb;
+            border: 2px solid #3498db;
+            border-radius: 8px;
         }
 
         .error-message {
@@ -287,6 +291,7 @@
             const results = document.getElementById('results');
             const error = document.getElementById('error');
 
+            loading.textContent = 'Processing...';
             loading.style.display = 'block';
             results.style.display = 'none';
             error.style.display = 'none';
@@ -298,16 +303,40 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    loading.style.display = 'none';
                     displayResults(data.results, data.raw_text);
-                } else {
+                } 
+                else if (data.needs_ocr) {
+                    // Update UI with the custom OCR message
+                    loading.textContent = data.message;
+                    
+                    // Add flag to force OCR on the next request
+                    formData.append('force_ocr', 'true');
+                    
+                    // Send the second request
+                    return fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(ocrData => {
+                        loading.style.display = 'none';
+                        if (ocrData.success) {
+                            displayResults(ocrData.results, ocrData.raw_text);
+                        } else {
+                            showError(ocrData.error || 'OCR processing failed.');
+                        }
+                    });
+                } 
+                else {
+                    loading.style.display = 'none';
                     showError(data.error || 'An error occurred while processing the PDF');
                 }
             })
-            .catch(() => {
-                showError('Failed to process the PDF. Please try again.');
-            })
-            .finally(() => {
+            .catch(err => {
                 loading.style.display = 'none';
+                showError('Failed to process the PDF. Please try again.');
+                console.error(err);
             });
         });
 
@@ -318,7 +347,6 @@
             if (!results || Object.keys(results).length === 0) {
                 resultsDiv.innerHTML = '<p class="no-results">No medications detected in the document.</p>';
             } else {
-                // Dynamically render all categories returned by the backend
                 let html = '';
                 for (const category of Object.keys(results)) {
                     html += `
