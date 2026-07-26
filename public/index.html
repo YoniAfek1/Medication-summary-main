@@ -174,10 +174,10 @@
             display: none;
             margin: 1rem 0;
             font-weight: 600;
-            color: #2980b9;
+            color: #b7950b;
             padding: 1rem;
-            background: #ebf5fb;
-            border: 2px solid #3498db;
+            background: #fef9e7;
+            border: 2px solid #f1c40f;
             border-radius: 8px;
         }
 
@@ -240,7 +240,7 @@
 
         <p class="info-text">Supported format: PDF</p>
 
-        <div class="loading" id="loading">Processing...</div>
+        <div class="loading" id="loading">Please note, problematic files will switch to OCR extraction and may take a few minutes.</div>
         <div class="error-message" id="error"></div>
         <div id="results"></div>
         <div class="raw-text-header" id="rawTextHeader">📄 File Contents</div>
@@ -291,50 +291,30 @@
             const results = document.getElementById('results');
             const error = document.getElementById('error');
 
-            // איפוס עיצוב למצב רגיל
-            loading.style.background = '#ebf5fb';
-            loading.style.borderColor = '#3498db';
-            loading.style.color = '#2980b9';
-            loading.textContent = 'Processing...';
+            // הצגת תיבת הטעינה מיד עם הודעת ההזהרה הקבועה
             loading.style.display = 'block';
             results.style.display = 'none';
             error.style.display = 'none';
 
             try {
-                // שלב 1: שליחה לבדיקה המהירה בשרת
-                let formData = new FormData(formElement);
-                let response = await fetch('/upload', { method: 'POST', body: formData });
-                let data = await response.json();
+                const formData = new FormData(formElement);
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
 
-                // שלב 2: אם השרת זיהה שהקובץ דורש OCR
-                if (data.needs_ocr) {
-                    // א. הצגת ההודעה הידידותית למשתמש בעיצוב צהוב בולט
-                    loading.innerHTML = '<strong>Notice:</strong> ' + data.message + '<br><small>Please wait, do not close the window.</small>';
-                    loading.style.background = '#fef9e7';
-                    loading.style.borderColor = '#f1c40f';
-                    loading.style.color = '#b7950b';
+                loading.style.display = 'none';
 
-                    // ב. השהיה קטנה לוודא שהדפדפן מצייר את ההודעה על המסך לעיני המשתמש
-                    await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // ג. שליחת הבקשה מחדש עם דגל ה-OCR
-                    formData.append('force_ocr', 'true');
-                    response = await fetch('/upload', { method: 'POST', body: formData });
-                    data = await response.json();
-                }
-
-                // שלב 3: הצגת התוצאות הסופיות
                 if (data.success) {
-                    loading.style.display = 'none';
                     displayResults(data.results, data.raw_text);
                 } else {
-                    loading.style.display = 'none';
                     showError(data.error || 'An error occurred while processing the PDF');
                 }
 
             } catch (err) {
                 loading.style.display = 'none';
-                showError('Network error or timeout. Failed to process the PDF.');
+                showError('Failed to process the PDF. Please try again.');
                 console.error(err);
             }
         });
