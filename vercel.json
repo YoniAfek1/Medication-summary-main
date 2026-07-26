@@ -2,12 +2,13 @@
   "version": 2,
   "builds": [
     { "src": "app.py", "use": "@vercel/python" },
-    { "src": "public/*", "use": "@vercel/static" }
+    { "src": "public/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/.*", "dest": "app.py" },
+    { "src": "/api/(.*)", "dest": "app.py" },
     { "src": "/upload", "dest": "app.py" },
-    { "src": "/medications", "dest": "app.py" },
-    { "src": "/", "dest": "/public/index.html" }
+    { "src": "/medications", "dest": "/public/medications.html" },
+    { "src": "/", "dest": "/public/index.html" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
