@@ -291,7 +291,7 @@
             const results = document.getElementById('results');
             const error = document.getElementById('error');
 
-            // איפוס עיצוב למצב רגיל של סריקה
+            // איפוס עיצוב למצב רגיל
             loading.style.background = '#ebf5fb';
             loading.style.borderColor = '#3498db';
             loading.style.color = '#2980b9';
@@ -301,29 +301,29 @@
             error.style.display = 'none';
 
             try {
-                // שלב 1: שליחה לבדיקה המהירה
+                // שלב 1: שליחה לבדיקה המהירה בשרת
                 let formData = new FormData(formElement);
                 let response = await fetch('/upload', { method: 'POST', body: formData });
                 let data = await response.json();
 
-                // שלב 2: אם השרת דיווח שהקובץ ריק וצריך OCR
+                // שלב 2: אם השרת זיהה שהקובץ דורש OCR
                 if (data.needs_ocr) {
-                    // א. משנים את ההודעה והצבע לצהוב
+                    // א. הצגת ההודעה הידידותית למשתמש בעיצוב צהוב בולט
                     loading.innerHTML = '<strong>Notice:</strong> ' + data.message + '<br><small>Please wait, do not close the window.</small>';
                     loading.style.background = '#fef9e7';
                     loading.style.borderColor = '#f1c40f';
                     loading.style.color = '#b7950b';
 
-                    // ב. מכריחים את הדפדפן להמתין 500 מילי-שניות ולצייר את ההודעה
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // ב. השהיה קטנה לוודא שהדפדפן מצייר את ההודעה על המסך לעיני המשתמש
+                    await new Promise(resolve => setTimeout(resolve, 300));
 
-                    // ג. שולחים את הבקשה הארוכה לשרת
+                    // ג. שליחת הבקשה מחדש עם דגל ה-OCR
                     formData.append('force_ocr', 'true');
                     response = await fetch('/upload', { method: 'POST', body: formData });
                     data = await response.json();
                 }
 
-                // סיום הטיפול
+                // שלב 3: הצגת התוצאות הסופיות
                 if (data.success) {
                     loading.style.display = 'none';
                     displayResults(data.results, data.raw_text);
