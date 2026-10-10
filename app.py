@@ -250,7 +250,7 @@ def find_drugs_in_pdf(pdf_stream):
                     # תבנית 2: מינון ויחידה מופרדים ברווח (למשל 20 mg)
                     m2 = re.match(r'^(\d+(?:\.\d+)?)$', next_words[i])
                     if m2 and i + 1 < len(next_words):
-                        if next_words[i+1] in ['mg', 'ml', 'gm', 'g', 'gr']:
+                        if next_words[i+1] in ['mg', 'ml', 'gm', 'g', 'gr', 'mcg']:
                             dosage_found = (float(m2.group(1)), next_words[i+1])
                             break
                 
