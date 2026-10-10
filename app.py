@@ -186,10 +186,13 @@ def find_drugs_in_pdf(pdf_stream):
     config = load_config()
     cat_order = build_category_order(config)
 
+    # יצירת טקסט נקי שבו כל התווים המיוחדים הופכים לרווחים, ומילים מופרדות כראוי
     sanitized_text = sanitize(full_text).lower()
-    cleaned_text = clean_letters_only(full_text)
+    normalized_text = " ".join(sanitized_text.split())
+    
+    # רשימה של מילים בודדות ונקיות מסימני פיסוק (לצורך חיפוש תרופות במילה אחת)
     word_list = sanitized_text.split()
-    word_list_clean = [clean_letters_only(w) for w in word_list]
+    word_list_clean = [clean_letters_only(w) for w in word_list if clean_letters_only(w)]
 
     results = {cat: [] for cat in cat_order}
     seen = {cat: set() for cat in cat_order}
@@ -204,17 +207,32 @@ def find_drugs_in_pdf(pdf_stream):
         for term in terms:
             if not term:
                 continue
-            term_clean = clean_letters_only(term)
-            if not term_clean:
-                continue
-            if len(term_clean) >= 4:
-                if term_clean in cleaned_text:
+                
+            term_words = term.lower().split()
+            
+            if len(term_words) > 1:
+                # טיפול במונחי חיפוש עם מספר מילים (כמו "ROKACET PLUS")
+                multi_word_clean = " ".join([clean_letters_only(w) for w in term_words if clean_letters_only(w)])
+                if multi_word_clean and multi_word_clean in normalized_text:
                     matched = True
                     break
             else:
-                if term_clean in word_list_clean:
-                    matched = True
-                    break
+                # טיפול במונח חיפוש של מילה אחת
+                term_clean = clean_letters_only(term)
+                if not term_clean:
+                    continue
+                    
+                if len(term_clean) >= 4:
+                    # אם המונח באורך 4 אותיות ומעלה - נבדוק אם הוא מהווה חלק ממילה בודדת קיימת (למשל fenta בתוך fentanyl)
+                    # זה מונע את ההתנגשות הקודמת שבה fenta נמצא בחיבור המילים hal(f) (enta)ngled
+                    if any(term_clean in word for word in word_list_clean):
+                        matched = True
+                        break
+                else:
+                    # מונח קצר במיוחד דורש התאמה מדויקת ומלאה (מילה שלמה) כדי למנוע זיהויי שווא
+                    if term_clean in word_list_clean:
+                        matched = True
+                        break
 
         if matched and display not in seen[cat]:
             seen[cat].add(display)
