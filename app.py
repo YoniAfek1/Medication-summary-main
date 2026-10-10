@@ -181,66 +181,121 @@ def extract_text_from_pdf(pdf_stream) -> str:
 
 # ─── Drug Detection ───────────────────────────────────────────────────────────
 
+# ─── Drug Detection ───────────────────────────────────────────────────────────
+
 def find_drugs_in_pdf(pdf_stream):
     full_text = extract_text_from_pdf(pdf_stream)
     config = load_config()
     cat_order = build_category_order(config)
 
-    # יצירת טקסט נקי שבו כל התווים המיוחדים הופכים לרווחים, ומילים מופרדות כראוי
-    sanitized_text = sanitize(full_text).lower()
-    normalized_text = " ".join(sanitized_text.split())
+    # טקסט נקי לחיפוש רגולרי - משאיר רווחים כדי לשמור על גבולות מילים
+    text_for_search = full_text.lower()
+    text_for_search = re.sub(r'\s+', ' ', text_for_search)
     
-    # רשימה של מילים בודדות ונקיות מסימני פיסוק (לצורך חיפוש תרופות במילה אחת)
-    word_list = sanitized_text.split()
-    word_list_clean = [clean_letters_only(w) for w in word_list if clean_letters_only(w)]
-
-    results = {cat: [] for cat in cat_order}
-    seen = {cat: set() for cat in cat_order}
+    # מעקב אחרי תרופות שנמצאו
+    found_items = {cat: set() for cat in cat_order}
+    
+    # מעקב אחרי המינונים לכל display_name. 
+    # מבנה: {'unit': 'mg', 'max_val': 20.0, 'conflict': False, 'found_any': False}
+    drug_dosages = {}
 
     for entry in CATEGORY_ENTRIES:
         cat = entry["category"]
         display = entry["display_name"]
-
-        terms = [t.strip() for t in re.split(r'[-–]', entry["search_terms"])]
-
-        matched = False
-        for term in terms:
-            if not term:
-                continue
-                
-            term_words = term.lower().split()
+        
+        if display not in drug_dosages:
+            drug_dosages[display] = {'unit': None, 'max_val': 0.0, 'conflict': False, 'found_any': False}
             
+        terms = [t.strip().lower() for t in re.split(r'[-–]', entry["search_terms"]) if t.strip()]
+        
+        for term in terms:
+            term_clean = clean_letters_only(term)
+            if not term_clean: continue
+                
+            term_words = term.split()
             if len(term_words) > 1:
-                # טיפול במונחי חיפוש עם מספר מילים (כמו "ROKACET PLUS")
-                multi_word_clean = " ".join([clean_letters_only(w) for w in term_words if clean_letters_only(w)])
-                if multi_word_clean and multi_word_clean in normalized_text:
-                    matched = True
-                    break
+                # מונח של מספר מילים (כמו "rokacet plus")
+                multi_word_clean = r'\s+'.join([clean_letters_only(w) for w in term_words if clean_letters_only(w)])
+                if not multi_word_clean: continue
+                pattern = r'\b' + multi_word_clean + r'\b'
             else:
-                # טיפול במונח חיפוש של מילה אחת
-                term_clean = clean_letters_only(term)
-                if not term_clean:
-                    continue
-                    
+                # מונח של מילה אחת
                 if len(term_clean) >= 4:
-                    # אם המונח באורך 4 אותיות ומעלה - נבדוק אם הוא מהווה חלק ממילה בודדת קיימת (למשל fenta בתוך fentanyl)
-                    # זה מונע את ההתנגשות הקודמת שבה fenta נמצא בחיבור המילים hal(f) (enta)ngled
-                    if any(term_clean in word for word in word_list_clean):
-                        matched = True
-                        break
+                    # מותרת התאמה כחלק ממילה (כדי למצוא fenta בתוך fentanyl)
+                    pattern = r'\b\w*' + re.escape(term_clean) + r'\w*\b'
                 else:
-                    # מונח קצר במיוחד דורש התאמה מדויקת ומלאה (מילה שלמה) כדי למנוע זיהויי שווא
-                    if term_clean in word_list_clean:
-                        matched = True
+                    # מונח קצר דורש התאמה מדויקת (מילה שלמה)
+                    pattern = r'\b' + re.escape(term_clean) + r'\b'
+            
+            # חיפוש כל המופעים של התרופה בטקסט
+            for match in re.finditer(pattern, text_for_search):
+                found_items[cat].add(display)
+                
+                # חיתוך הטקסט שמופיע מיד אחרי התרופה כדי לחפש את המינון
+                end_pos = match.end()
+                substring_after = text_for_search[end_pos : end_pos + 50]
+                
+                # לקיחת 3 המילים הראשונות אחרי התרופה (מרחק 0, 1 או 2 מהתרופה)
+                # כולל רק אותיות, מספרים ונקודות (למינונים עשרוניים כמו 2.5)
+                next_words = re.findall(r'[a-z0-9.]+', substring_after)[:3] 
+                
+                dosage_found = None
+                for i in range(len(next_words)):
+                    # תבנית 1: מינון ויחידה מחוברים (למשל 20mg)
+                    m1 = re.match(r'^(\d+(?:\.\d+)?)(mg|ml|gm|g)$', next_words[i])
+                    if m1:
+                        dosage_found = (float(m1.group(1)), m1.group(2))
                         break
-
-        if matched and display not in seen[cat]:
-            seen[cat].add(display)
-            results[cat].append(display)
-
+                        
+                    # תבנית 2: מינון ויחידה מופרדים ברווח (למשל 20 mg)
+                    m2 = re.match(r'^(\d+(?:\.\d+)?)$', next_words[i])
+                    if m2 and i + 1 < len(next_words):
+                        if next_words[i+1] in ['mg', 'ml', 'gm', 'g', 'gr']:
+                            dosage_found = (float(m2.group(1)), next_words[i+1])
+                            break
+                
+                # אם מצאנו מינון תקני, נעדכן את הרישום עבור תרופה זו
+                if dosage_found:
+                    val, unit = dosage_found
+                    drug_dosages[display]['found_any'] = True
+                    
+                    curr_unit = drug_dosages[display]['unit']
+                    if curr_unit is None:
+                        # מינון ראשון שנמצא לתרופה זו
+                        drug_dosages[display]['unit'] = unit
+                        drug_dosages[display]['max_val'] = val
+                    elif curr_unit != unit:
+                        # נמצא מינון ביחידת מידה שונה (התנגשות - נבטל הצגה)
+                        drug_dosages[display]['conflict'] = True
+                    else:
+                        # יחידת מידה זהה - נשמור את המקסימלי
+                        drug_dosages[display]['max_val'] = max(drug_dosages[display]['max_val'], val)
+                        
+    # בניית התוצאות הסופיות
+    results = {cat: [] for cat in cat_order}
+    seen_for_output = {cat: set() for cat in cat_order}
+    
+    for entry in CATEGORY_ENTRIES:
+        cat = entry["category"]
+        display = entry["display_name"]
+        
+        if display in found_items[cat] and display not in seen_for_output[cat]:
+            seen_for_output[cat].add(display)
+            
+            final_display = display
+            dd = drug_dosages[display]
+            
+            # אם נמצא מינון כלשהו, ואין התנגשות ביחידות המידה
+            if dd['found_any'] and not dd['conflict']:
+                max_val = dd['max_val']
+                # אם המינון הוא מספר שלם, נציג אותו בלי .0 מיותר (20 במקום 20.0)
+                val_str = f"{int(max_val)}" if max_val.is_integer() else f"{max_val}"
+                final_display += f". Maximum dosage {val_str}{dd['unit']}"
+            
+            results[cat].append(final_display)
+            
     ordered_results = {cat: results[cat] for cat in cat_order if results[cat]}
     return ordered_results, full_text
-
 
 # ─── Page Routes ──────────────────────────────────────────────────────────────
 

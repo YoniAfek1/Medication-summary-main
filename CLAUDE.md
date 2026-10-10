@@ -15,40 +15,43 @@ Its purpose is to extract text from medical PDF documents and automatically dete
 
 ---
 
-## 🚀 UPGRADE PLAN (Current Missions)
+## ✅ IMPLEMENTED CAPABILITIES & FEATURES
+The following core capabilities have been successfully implemented in the system:
 
-Please execute the following upgrades step-by-step. Present a plan for each step before writing the code.
+### 1. Robust PDF Text Extraction
+* **Tier 1 (Primary):** Uses `pdfplumber` for robust standard text extraction.
+* **Tier 2 (Fallback):** If `pdfplumber` fails or extracts fewer than 20 characters, it falls back to `PyPDF2`.
+* **Tier 3 (OCR Fallback):** Integrates an external OCR API to process scanned documents or images if standard extraction fails.
+* **Hebrew Fixer:** Automatically detects and reverses visual-order Hebrew text extracted from PDFs into logical order.
 
-### Mission 1: Dual-Tier PDF Text Extraction
-**Problem:** The current extraction method needs to be more robust, falling back to an alternative library if the primary one fails.
-**Task:** 
-* Implement a two-tier extraction pipeline directly in the application logic:
-  * **Tier 1 (Primary):** Use `pdfplumber` to extract text from the PDF.
-  * **Tier 2 (Fallback):** If `pdfplumber` extracts fewer than 20 characters, automatically fall back to using `PyPDF2` (or `pypdf`) to extract the text.
-  * **Failure Handling:** If both methods fail (the final extracted text still contains fewer than 20 characters), stop the processing and return a clear error message to the frontend stating that "The file format is not supported or contains no readable text."
-* Update `requirements.txt` to include `pdfplumber`. 
+### 2. Smart Drug Detection (Regex & Word Boundaries)
+* Prevents "false positives" by strictly enforcing word boundaries for short terms (1-3 letters).
+* Allows substring matches only for longer terms (4+ letters) within bounded words.
+* Supports exact multi-word matching (e.g., "ROKACET PLUS") using sanitized text.
 
-### Mission 2: Medications Management Interface (New Page)
-**Problem:** The drug categories are hardcoded, and users have no visibility or control over what is being searched.
-**Task:** 
-* Create a new route and frontend page (e.g., `/medications`) to serve as a transparency and management dashboard.
-* **UI Layout:** Render a distinct, clean table for each drug category (e.g., "Weak opioids", "Strong opioids").
-* **Table Structure:** Each table must have exactly two columns:
-  1. `Search Term(s)` (The string or RegEx used to search the text).
-  2. `Display Name` (The output name shown to the user upon a match).
-* **CRUD Functionality:** 
-  * Users must be able to ADD new medications (Search Term and Display Name) to any category.
-  * Users must be able to DELETE medications.
-* **CRITICAL CONSTRAINT - Protect Base Drugs:** The existing medications currently hardcoded in `app.py` are the "stable base". They must be visibly marked and **cannot be deleted** by the user. Only newly added, user-generated medications can be deleted. 
-* **Implementation Hint:** You will likely need to refactor how drugs are stored (e.g., using a local JSON database like `drugs_config.json`) with a boolean flag like `is_base: true` to prevent deletion of core items.
-* **Dynamic Categories:** Categories are now fully managed via `drugs_config.json` (local dev) or Vercel KV / Redis (production). Users can create new categories through the `/medications` page UI (`POST /api/categories`). Newly created categories are automatically available in the PDF detection pipeline — any medications added to them will be searched for when a PDF is uploaded. The category ordering on the medications page shows the known base categories first, followed by any user-created dynamic categories.
-* **Delete Category:** User-created categories can be deleted via the red "✕ Delete Category" button in the category header on the `/medications` page. The 5 base categories (NSAIDS, COXI; Weak opioids; Strong opioids; Adjuvants; Muscle relaxants) are strictly protected and cannot be deleted.
+### 3. Maximum Dosage Extraction
+* Automatically extracts the highest dosage taken for a detected medication across the entire document.
+* **Supported Units:** `mg`, `ml`, `gm`, `g`.
+* **Logic:** Uses a Two-Pass Regex approach. Scans up to 3 words (distance of up to 2 words) immediately following a detected drug name to accurately capture its dosage.
+* **Conflict Resolution:** If the exact same drug is found with different units in the same document (e.g., `10GM` and `20MG`), it safely skips displaying the dosage to avoid medical inaccuracies.
+* **Output Format:** Appends "Maximum dosage {value}{unit}" directly to the display name.
+
+### 4. Medications Management Dashboard (`/medications`)
+* Dynamic CRUD interface to manage drugs per category.
+* **Protected Base:** Core medications and 5 core categories (e.g., NSAIDS, Weak opioids) are protected and cannot be deleted.
+* Users can dynamically add and delete custom categories and user-generated medications. 
+
+### 5. Seamless "Copy to Clipboard"
+* A dedicated UI button on the main dashboard to copy the extraction summary.
+* **Data-Driven Approach:** Builds the clipboard text directly from the JSON response object (bypassing DOM scraping), ensuring clean, plain-text formatting that pastes perfectly into Microsoft Word.
+
+---
 
 ## 🗄️ Vercel Persistence (Storage Layer)
 The application stores medication data (categories, entries) in `drugs_config.json` for local development. When deployed on Vercel, the ephemeral filesystem makes this unreliable. The app uses a `storage.py` module that supports two backends:
 
-* **Local (default):** reads/writes `drugs_config.json` directly
-* **Redis (production):** when the `KV_URL` environment variable is set, automatically connects to Vercel KV (or any Redis instance) and keeps the config there
+* **Local (default):** reads/writes `drugs_config.json` directly.
+* **Redis (production):** when the `KV_URL` environment variable is set, automatically connects to Vercel KV (or any Redis instance) and keeps the config there.
 
 ### To enable Vercel KV persistence:
 1. In your Vercel dashboard: **Storage → Create a KV database**
