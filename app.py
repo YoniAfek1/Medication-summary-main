@@ -241,12 +241,14 @@ def find_drugs_in_pdf(pdf_stream):
                 
                 dosage_found = None
                 for i in range(len(next_words)):
-                    m1 = re.match(r'^(\d+(?:\.\d+)?)(mg|ml|gm|g)$', next_words[i])
+                    # תבנית 1: חילוץ המספר והיחידה גם אם הם מודבקים לטקסט אחר (כמו ino.75mg)
+                    m1 = re.search(r'(\d+(?:\.\d+)?)(mg|ml|gm|g|gr|mcg)(?:\b|$)', next_words[i])
                     if m1:
                         dosage_found = (float(m1.group(1)), m1.group(2))
                         break
                         
-                    m2 = re.match(r'^(\d+(?:\.\d+)?)$', next_words[i])
+                    # תבנית 2: מינון ויחידה מופרדים (כאשר המספר עשוי להיות מודבק למילה לפניו)
+                    m2 = re.search(r'(\d+(?:\.\d+)?)$', next_words[i])
                     if m2 and i + 1 < len(next_words):
                         if next_words[i+1] in ['mg', 'ml', 'gm', 'g', 'gr', 'mcg']:
                             dosage_found = (float(m2.group(1)), next_words[i+1])
