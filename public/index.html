@@ -404,15 +404,27 @@
         
         function formatResultsForClipboard(results) {
             let clipboardText = "";
+            let categoryCount = 0; // למעקב כדי שלא נוסיף שורת רווח מיותרת בסוף
+            const totalCategories = Object.keys(results).filter(c => results[c] && results[c].length > 0).length;
+
             for (const category of Object.keys(results)) {
                 if (results[category] && results[category].length > 0) {
-                    clipboardText += `${category}\n`;
-                    results[category].forEach(drug => {
-                        clipboardText += `- ${drug}\n`;
-                    });
-                    clipboardText += "\n";
+                    categoryCount++;
+                    
+                    if (category === "NSAIDS, COXI") {
+                        // חריג: לקטגוריה זו מדפיסים *רק* את הכותרת (בלי התרופות שתחתיה)
+                        clipboardText += `${category}\n`;
+                    } else {
+                        // התנהגות רגילה: כותרת הקטגוריה
+                        clipboardText += `${category}\n`;
+                        // הדפסת כל התרופות שתחתיה
+                        results[category].forEach(drug => {
+                            clipboardText += `- ${drug}\n`;
+                        });
+                    }
                 }
             }
+            // ה-trim() בסוף מבטיח שאם יש ירידת שורה מיותרת בסוף, היא תוסר
             return clipboardText.trim();
         }
 

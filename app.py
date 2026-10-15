@@ -241,39 +241,37 @@ def find_drugs_in_pdf(pdf_stream):
                 
                 dosage_found = None
                 for i in range(len(next_words)):
-                    # תבנית 1: מינון ויחידה מחוברים (למשל 20mg)
                     m1 = re.match(r'^(\d+(?:\.\d+)?)(mg|ml|gm|g)$', next_words[i])
                     if m1:
                         dosage_found = (float(m1.group(1)), m1.group(2))
                         break
                         
-                    # תבנית 2: מינון ויחידה מופרדים ברווח (למשל 20 mg)
                     m2 = re.match(r'^(\d+(?:\.\d+)?)$', next_words[i])
                     if m2 and i + 1 < len(next_words):
                         if next_words[i+1] in ['mg', 'ml', 'gm', 'g', 'gr', 'mcg']:
                             dosage_found = (float(m2.group(1)), next_words[i+1])
                             break
                 
-                # אם מצאנו מינון תקני, נעדכן את הרישום עבור תרופה זו
                 if dosage_found:
                     val, unit = dosage_found
                     drug_dosages[display]['found_any'] = True
                     
                     curr_unit = drug_dosages[display]['unit']
                     if curr_unit is None:
-                        # מינון ראשון שנמצא לתרופה זו
                         drug_dosages[display]['unit'] = unit
                         drug_dosages[display]['max_val'] = val
                     elif curr_unit != unit:
-                        # נמצא מינון ביחידת מידה שונה (התנגשות - נבטל הצגה)
                         drug_dosages[display]['conflict'] = True
                     else:
-                        # יחידת מידה זהה - נשמור את המקסימלי
                         drug_dosages[display]['max_val'] = max(drug_dosages[display]['max_val'], val)
                         
-    # בניית התוצאות הסופיות
+# בניית התוצאות הסופיות
     results = {cat: [] for cat in cat_order}
     seen_for_output = {cat: set() for cat in cat_order}
+    
+    # תרופות / קטגוריות שמהן אנחנו מחריגים את תצוגת המינון
+    NO_DOSAGE_CATEGORIES = {"NSAIDS, COXI"}
+    NO_DOSAGE_DRUGS = {"ZALDIAR", "ROKACET - ROKACET PLUS"}
     
     for entry in CATEGORY_ENTRIES:
         cat = entry["category"]
@@ -285,12 +283,15 @@ def find_drugs_in_pdf(pdf_stream):
             final_display = display
             dd = drug_dosages[display]
             
-            # אם נמצא מינון כלשהו, ואין התנגשות ביחידות המידה
-            if dd['found_any'] and not dd['conflict']:
+            # בדיקה האם מותר להציג מינון עבור תרופה זו
+            allow_dosage = cat not in NO_DOSAGE_CATEGORIES and display not in NO_DOSAGE_DRUGS
+            
+            # אם מותר, נמצא מינון, ואין התנגשות ביחידות המידה
+            if allow_dosage and dd['found_any'] and not dd['conflict']:
                 max_val = dd['max_val']
                 # אם המינון הוא מספר שלם, נציג אותו בלי .0 מיותר (20 במקום 20.0)
                 val_str = f"{int(max_val)}" if max_val.is_integer() else f"{max_val}"
-                final_display += f". Maximum dosage {val_str}{dd['unit']}"
+                final_display += f". [max-dose {val_str}{dd['unit']}]"
             
             results[cat].append(final_display)
             
